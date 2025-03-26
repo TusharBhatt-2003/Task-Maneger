@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { addTask } from "../redux/taskSlice";
+import { RootState } from "../redux/store"; // Ensure correct type import
 
 interface Task {
   id: number;
@@ -11,16 +12,22 @@ interface Task {
 
 const TaskInput: React.FC = () => {
   const dispatch = useDispatch();
+  const tasks = useSelector((state: RootState) => state.tasks); // Get tasks from Redux
   const [task, setTask] = useState<string>("");
   const [priority, setPriority] = useState<Task["priority"]>("Medium");
 
-  // Load tasks from localStorage when the component mounts
+  // Load tasks from localStorage only once and dispatch only if they are not in Redux
   useEffect(() => {
     const savedTasks: Task[] = JSON.parse(
       localStorage.getItem("tasks") || "[]",
     );
-    savedTasks.forEach((task) => dispatch(addTask(task)));
-  }, [dispatch]);
+
+    savedTasks.forEach((savedTask) => {
+      if (!tasks.some((t) => t.id === savedTask.id)) {
+        dispatch(addTask(savedTask));
+      }
+    });
+  }, [dispatch, tasks]); // Depend on tasks to avoid re-dispatching
 
   const handleAddTask = () => {
     if (task.trim()) {
@@ -35,10 +42,8 @@ const TaskInput: React.FC = () => {
       dispatch(addTask(newTask));
 
       // Save to localStorage
-      const savedTasks: Task[] = JSON.parse(
-        localStorage.getItem("tasks") || "[]",
-      );
-      localStorage.setItem("tasks", JSON.stringify([...savedTasks, newTask]));
+      const updatedTasks = [...tasks, newTask];
+      localStorage.setItem("tasks", JSON.stringify(updatedTasks));
 
       setTask(""); // Clear input after adding task
     }

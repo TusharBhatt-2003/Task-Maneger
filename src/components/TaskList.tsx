@@ -12,6 +12,9 @@ const TaskList = () => {
   const [filter, setFilter] = useState<
     "all" | "completed" | "incomplete" | "outdoor"
   >("all");
+  const [priorityFilter, setPriorityFilter] = useState<
+    "all" | "High" | "Medium" | "Low"
+  >("all");
 
   const outdoorKeywords = [
     // General Outdoor Terms
@@ -81,17 +84,21 @@ const TaskList = () => {
         weather.current.condition.text.toLowerCase().includes(condition),
       ));
 
-  // Filter tasks based on the selected filter
+  // Apply both filters: status and priority
   const filteredTasks = tasks.filter((task) => {
-    if (filter === "completed") return task.completed;
-    if (filter === "incomplete") return !task.completed;
-    if (filter === "outdoor")
-      return outdoorKeywords.some((word) =>
-        task.text.toLowerCase().includes(word),
-      );
-    return true; // Default: Show all tasks
-  });
+    const matchesStatus =
+      filter === "all" ||
+      (filter === "completed" && task.completed) ||
+      (filter === "incomplete" && !task.completed) ||
+      (filter === "outdoor" &&
+        outdoorKeywords.some((word) => task.text.toLowerCase().includes(word)));
 
+    const matchesPriority =
+      priorityFilter === "all" || task.priority === priorityFilter;
+
+    return matchesStatus && matchesPriority;
+  });
+  console.log(tasks.length);
   return (
     <div className="mt-6">
       {/* Filter Buttons */}
@@ -112,11 +119,28 @@ const TaskList = () => {
           </button>
         ))}
       </div>
-
+      {/* Priority Filter Buttons */}
+      <div className="flex gap-2 mb-4">
+        {["all", "High", "Medium", "Low"].map((priority) => (
+          <button
+            key={priority}
+            className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+              priorityFilter === priority
+                ? "bg-black text-white"
+                : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+            }`}
+            onClick={() =>
+              setPriorityFilter(priority as "all" | "High" | "Medium" | "Low")
+            }
+          >
+            {priority}
+          </button>
+        ))}
+      </div>
       {filteredTasks.length === 0 ? (
         <p className="text-center text-zinc-500">No tasks found. 🎯</p>
       ) : (
-        <ul className="space-y-3 px-2 overflow-y-scroll overflow-hidden max-h-[30vh] scrollbar py-2">
+        <ul className="space-y-3 px-2 overflow-y-scroll overflow-hidden max-h-[30vh] rounded-3xl scrollbar py-2">
           {filteredTasks.map((task) => (
             <motion.li
               initial={{ opacity: 0, scaleX: 0.5 }} // Starts hidden and slightly above
@@ -185,6 +209,7 @@ const TaskList = () => {
               <div className="">
                 {isWeatherBad &&
                   weather &&
+                  !task.completed &&
                   outdoorKeywords.some((word) =>
                     task.text.toLowerCase().includes(word),
                   ) && (
@@ -200,6 +225,7 @@ const TaskList = () => {
                   )}
                 {!isWeatherBad &&
                   weather &&
+                  !task.completed &&
                   outdoorKeywords.some((word) =>
                     task.text.toLowerCase().includes(word),
                   ) && (
